@@ -1,7 +1,7 @@
 package database
 
 import (
-	"Agora/constant"
+	"Agora/constants"
 	"fmt"
 	"log"
 	"os"
