@@ -1,7 +1,7 @@
 package routes
 
 import (
-	constants "Agora/constant"
+	"Agora/constants"
 	"Agora/controller"
 	"Agora/middleware"
 	"Agora/service"
