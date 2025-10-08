@@ -58,6 +58,8 @@ func (ps *ProposalService) CreateProposal(ctx context.Context, req dto.CreatePro
 		return dto.CreateProposalResponse{}, constants.ErrCreateProposal
 	}
 
+	logging.Log.Infof(constants.MESSAGE_SUCCESS_CREATE_USER+": %s", proposal.Title)
+
 	return dto.CreateProposalResponse{
 		ID:          proposal.ID,
 		Title:       proposal.Title,
