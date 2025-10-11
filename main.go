@@ -9,6 +9,7 @@ import (
 	"Agora/repository"
 	"Agora/routes"
 	"Agora/service"
+	"Agora/websocket"
 	"log"
 	"os"
 
@@ -36,20 +37,31 @@ func main() {
 		return
 	}
 
+	// ==== WebSocket Setup ====
+	go websocket.WsHub.Run()
+
 	var (
 		jwtService = service.NewJWTService()
 
 		userRepo       = repository.NewUserRepository(db)
 		userService    = service.NewUserService(userRepo, jwtService)
 		userController = controller.NewUserController(userService)
+
+		proposalRepo       = repository.NewProposalRepository(db)
+		proposalService    = service.NewProposalService(proposalRepo, userRepo, jwtService)
+		proposalController = controller.NewProposalController(proposalService)
+
+		commentRepo       = repository.NewCommentRepository(db)
+		commentService    = service.NewCommentService(commentRepo)
+		commentController = controller.NewCommentController(commentService)
 	)
 
 	server := gin.Default()
 	server.Use(middleware.CORSMiddleware())
 
 	routes.PublicRoutes(server, userController)
-	routes.AdminRoutes(server, userController, jwtService)
-	routes.UserRoutes(server, userController, jwtService)
+	routes.AdminRoutes(server, userController, jwtService, proposalController)
+	routes.UserRoutes(server, userController, commentController, jwtService)
 
 	server.Static("/assets", "./assets")
 

@@ -9,13 +9,13 @@ import (
 )
 
 type (
-	InterfaceJWTService interface {
+	IJWTService interface {
 		GenerateToken(userID string, role string) (string, string, error)
 		ValidateToken(token string) (*jwt.Token, *jwtCustomClaims, error)
 	}
 
 	jwtCustomClaims struct {
-		UserID string `json:"id"`
+		UserID string `json:"user_id"`
 		Role   string `json:"role"`
 		jwt.RegisteredClaims
 	}
@@ -29,7 +29,7 @@ type (
 func getSecretKey() string {
 	key := os.Getenv("JWT_SECRET")
 	if key == "" {
-		key = "Template"
+		key = "TemplateSecretKey"
 	}
 	return key
 }
@@ -37,17 +37,17 @@ func getSecretKey() string {
 func NewJWTService() *JWTService {
 	return &JWTService{
 		secretKey: getSecretKey(),
-		issuer:    "Template",
+		issuer:    "Agora",
 	}
 }
 
 func (j *JWTService) GenerateToken(userID, role string) (string, string, error) {
-	// Access token
+	// Access Token
 	accessClaims := jwtCustomClaims{
 		UserID: userID,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // bisa disesuaikan
 			Issuer:    j.issuer,
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
@@ -58,7 +58,7 @@ func (j *JWTService) GenerateToken(userID, role string) (string, string, error) 
 		return "", "", constants.ErrGenerateAccessToken
 	}
 
-	// Refresh token
+	// Refresh Token
 	refreshClaims := jwtCustomClaims{
 		UserID: userID,
 		Role:   role,
@@ -79,6 +79,7 @@ func (j *JWTService) GenerateToken(userID, role string) (string, string, error) 
 
 func (j *JWTService) ValidateToken(tokenString string) (*jwt.Token, *jwtCustomClaims, error) {
 	claims := &jwtCustomClaims{}
+
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, constants.ErrUnexpectedSigningMethod
@@ -89,7 +90,6 @@ func (j *JWTService) ValidateToken(tokenString string) (*jwt.Token, *jwtCustomCl
 	if err != nil {
 		return nil, nil, constants.ErrValidateToken
 	}
-
 	if !token.Valid {
 		return nil, nil, constants.ErrTokenInvalid
 	}

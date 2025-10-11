@@ -4,6 +4,7 @@ import (
 	"Agora/controller"
 	"Agora/middleware"
 	"Agora/service"
+	"Agora/websocket"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,14 +12,26 @@ import (
 func UserRoutes(
 	r *gin.Engine,
 	userController controller.IUserController,
-	jwtService service.InterfaceJWTService,
+	commentController controller.ICommentController,
+	jwtService service.IJWTService,
 ) {
-	user := r.Group("/api/users")
-	user.Use(middleware.Authentication(jwtService))
+	api := r.Group("/api")
+	api.Use(middleware.Authentication(jwtService))
 
-	// --- User Routes ---
-	user.PATCH("/update-profile/:id", userController.UpdateUser)
-	user.GET("/get-detail-user/:id", userController.GetUserByID)
-	user.DELETE("/delete-profile/:id", userController.DeleteUser)
-	
+	// --- USERS ---
+	users := api.Group("/users")
+	{
+		users.GET("", userController.GetAllUser)       // GET /api/users
+		users.GET("/:id", userController.GetUserByID)    // GET /api/users/:id
+		users.POST("", userController.CreateUser)       // POST /api/users
+		users.PATCH("/:id", userController.UpdateUser)     // PUT /api/users/:id
+		users.DELETE("/:id", userController.DeleteUser)  // DELETE /api/users/:id
+	}
+
+	// --- COMMENTS ---
+	comments := api.Group("/comments")
+	{
+		comments.GET("", websocket.ServeWs)
+		comments.POST("", commentController.CreateComment) 
+	}
 }

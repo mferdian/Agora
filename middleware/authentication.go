@@ -5,13 +5,14 @@ import (
 	"Agora/logging"
 	"Agora/service"
 	"Agora/utils"
+	"context"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-func Authentication(jwtService service.InterfaceJWTService) gin.HandlerFunc {
+func Authentication(jwtService service.IJWTService) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authHeader := ctx.GetHeader("Authorization")
 		if authHeader == "" {
@@ -29,7 +30,6 @@ func Authentication(jwtService service.InterfaceJWTService) gin.HandlerFunc {
 		}
 
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-
 		token, claims, err := jwtService.ValidateToken(tokenStr)
 		if err != nil || !token.Valid {
 			logging.Log.Warnf("Invalid token: %v", err)
@@ -38,11 +38,16 @@ func Authentication(jwtService service.InterfaceJWTService) gin.HandlerFunc {
 			return
 		}
 
-		logging.Log.Infof("Authenticated request - UserID: %s, Role: %s", claims.UserID, claims.Role)
+		// Simpan ke context bawaan request (untuk service)
+		newCtx := context.WithValue(ctx.Request.Context(), constants.ContextUserIDKey, claims.UserID)
+		newCtx = context.WithValue(newCtx, constants.ContextRoleKey, claims.Role)
+		ctx.Request = ctx.Request.WithContext(newCtx)
 
-		ctx.Set("Authorization", tokenStr)
-		ctx.Set("id", claims.ID)
+		// Simpan ke gin.Context (untuk middleware lain seperti AuthorizeRole)
+		ctx.Set("id", claims.UserID)
 		ctx.Set("role", claims.Role)
+
+		logging.Log.Infof("Authenticated request - UserID: %s, Role: %s", claims.UserID, claims.Role)
 
 		ctx.Next()
 	}
