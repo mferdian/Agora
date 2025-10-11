@@ -24,13 +24,15 @@ type (
 
 	ProposalService struct {
 		proposalRepo repository.IProposalRepository
-		jwtService   InterfaceJWTService
+		userRepo repository.IUserRepository
+		jwtService   IJWTService
 	}
 )
 
-func NewProposalService(proposalRepo repository.IProposalRepository, jwtService InterfaceJWTService) *ProposalService {
+func NewProposalService(proposalRepo repository.IProposalRepository, userRepo repository.IUserRepository ,jwtService IJWTService) *ProposalService {
 	return &ProposalService{
 		proposalRepo: proposalRepo,
+		userRepo: userRepo,
 		jwtService:   jwtService,
 	}
 }
@@ -38,12 +40,8 @@ func NewProposalService(proposalRepo repository.IProposalRepository, jwtService 
 func (ps *ProposalService) CreateProposal(ctx context.Context, req dto.CreateProposalRequest) (dto.CreateProposalResponse, error) {
 	userID := helpers.GetUserID(ctx)
 	if userID == "" {
+		logging.Log.Warn("failed to get userID from token")
 		return dto.CreateProposalResponse{}, constants.ErrGetIDFromToken
-	}
-
-	if len(req.Title) < 2 {
-		logging.Log.Warn(constants.MESSAGE_FAILED_CREATE_PROPOSAL + ": name too short")
-		return dto.CreateProposalResponse{}, constants.ErrInvalidProposalName
 	}
 
 	proposal := model.Proposal{
@@ -58,7 +56,15 @@ func (ps *ProposalService) CreateProposal(ctx context.Context, req dto.CreatePro
 		return dto.CreateProposalResponse{}, constants.ErrCreateProposal
 	}
 
-	logging.Log.Infof(constants.MESSAGE_SUCCESS_CREATE_USER+": %s", proposal.Title)
+	logging.Log.WithFields(map[string]interface{}{
+		"user_id": userID,
+		"title":   req.Title,
+	}).Info(constants.MESSAGE_SUCCESS_CREATE_PROPOSAL)
+
+	user, _, err := ps.userRepo.GetUserByID(ctx, nil, userID)
+	if err != nil {
+		logging.Log.WithError(err).Error("failed to get user info")
+	}
 
 	return dto.CreateProposalResponse{
 		ID:          proposal.ID,
@@ -66,11 +72,10 @@ func (ps *ProposalService) CreateProposal(ctx context.Context, req dto.CreatePro
 		Description: proposal.Description,
 		User: dto.UserCompactResponse{
 			ID:    uuid.MustParse(userID),
-			Name:  proposal.User.Name,
-			Email: proposal.User.Email,
+			Name:  user.Name,
+			Email: user.Email,
 		},
 	}, nil
-
 }
 
 func (ps *ProposalService) GetAllProposalWithPagination(ctx context.Context, req dto.ProposalPaginationRequest) (dto.ProposalPaginationResponse, error) {
@@ -101,9 +106,12 @@ func (ps *ProposalService) GetAllProposalWithPagination(ctx context.Context, req
 		},
 	}, nil
 }
+
 func (ps *ProposalService) GetAllProposal(ctx context.Context) ([]dto.ProposalResponse, error) {
 	proposals, err := ps.proposalRepo.GetAllProposal(ctx, nil)
+
 	if err != nil {
+		logging.Log.WithError(err).Error(constants.MESSAGE_FAILED_GET_LIST_PROPOSAL)
 		return nil, constants.ErrGetAllProposal
 	}
 
@@ -126,7 +134,7 @@ func (ps *ProposalService) GetProposalByID(ctx context.Context, id string) (dto.
 
 	proposal, _, err := ps.proposalRepo.GetProposalByID(ctx, nil, id)
 	if err != nil {
-		logging.Log.WithError(err).WithField("id", id).Error(constants.MESSAGE_FAILED_GET_DETAIL_USER)
+		logging.Log.WithError(err).WithField("id", id).Error(constants.MESSAGE_FAILED_GET_DETAIL_PROPOSAL)
 		return dto.ProposalResponse{}, constants.ErrGetProposalByID
 	}
 
@@ -138,6 +146,7 @@ func (ps *ProposalService) GetProposalByID(ctx context.Context, id string) (dto.
 		Description: proposal.Description,
 	}, nil
 }
+
 func (ps *ProposalService) UpdateProposal(ctx context.Context, req dto.UpdateProposalRequest) (dto.ProposalResponse, error) {
 	proposal, _, err := ps.proposalRepo.GetProposalByID(ctx, nil, req.ID)
 	if err != nil {

@@ -1,5 +1,8 @@
 package constants
 
+
+type ContextKey string
+
 const (
 	ENUM_ROLE_ADMIN = "admin"
 	ENUM_ROLE_USER  = "user"
@@ -9,4 +12,7 @@ const (
 
 	ENUM_PAGINATION_LIMIT = 10
 	ENUM_PAGINATION_PAGE  = 1
+
+	ContextUserIDKey ContextKey = "user_id"
+	ContextRoleKey   ContextKey = "role"
 )

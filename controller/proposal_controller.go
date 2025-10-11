@@ -33,24 +33,22 @@ func NewProposalController(proposalService service.IProposalService) *ProposalCo
 }
 
 func (ps *ProposalController) CreateProposal(ctx *gin.Context) {
-	var payload dto.CreateProposalRequest
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		logging.Log.WithError(err).Warn(constants.MESSAGE_FAILED_GET_DATA_FROM_BODY)
-		res := utils.BuildResponseFailed(constants.MESSAGE_FAILED_GET_DATA_FROM_BODY, err.Error(), nil)
+	var req dto.CreateProposalRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		res := utils.BuildResponseFailed(constants.MESSAGE_FAILED_PROSES_REQUEST, err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
-
-	result, err := ps.proposalService.CreateProposal(ctx.Request.Context(), payload)
+	resData, err := ps.proposalService.CreateProposal(ctx.Request.Context(), req)
 	if err != nil {
-		logging.Log.WithError(err).Warn(constants.MESSAGE_FAILED_CREATE_PROPOSAL)
+		logging.Log.WithError(err).Error(constants.MESSAGE_FAILED_CREATE_PROPOSAL)
 		res := utils.BuildResponseFailed(constants.MESSAGE_FAILED_CREATE_PROPOSAL, err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	logging.Log.Infof(constants.MESSAGE_SUCCESS_CREATE_PROPOSAL+": %s", result.Title)
-	res := utils.BuildResponseSuccess(constants.MESSAGE_SUCCESS_CREATE_PROPOSAL, result)
+	logging.Log.Infof(constants.MESSAGE_SUCCESS_CREATE_PROPOSAL+": %s", resData.Title)
+	res := utils.BuildResponseSuccess(constants.MESSAGE_SUCCESS_CREATE_PROPOSAL, resData)
 	ctx.JSON(http.StatusCreated, res)
 }
 func (ps *ProposalController) GetAllProposal(ctx *gin.Context) {

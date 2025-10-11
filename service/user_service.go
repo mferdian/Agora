@@ -26,11 +26,11 @@ type (
 
 	UserService struct {
 		userRepo   repository.IUserRepository
-		jwtService InterfaceJWTService
+		jwtService IJWTService
 	}
 )
 
-func NewUserService(userRepo repository.IUserRepository, jwtService InterfaceJWTService) *UserService {
+func NewUserService(userRepo repository.IUserRepository, jwtService IJWTService) *UserService {
 	return &UserService{
 		userRepo:   userRepo,
 		jwtService: jwtService,
