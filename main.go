@@ -1,7 +1,7 @@
 package main
 
 import (
-	cmd "Agora/command"
+	"Agora/command"
 	"Agora/config/database"
 	"Agora/controller"
 	"Agora/logging"
@@ -18,66 +18,76 @@ import (
 )
 
 func main() {
-	// ==== Set up logger ====
+	// ==== Setup Logger ====
 	logging.SetUpLogger()
 	logging.Log.Info("Logger initialized")
 
-	// Load .env
+	// ==== Load .env ====
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
+		log.Println("No .env file found, using system environment")
 	}
 
-	// DB
+	// ==== Database Connection ====
 	db := database.SetUpPostgreSQLConnection()
 	defer database.ClosePostgreSQLConnection(db)
 
-	// Seeder command
+	// ==== Seeder Mode ====
 	if len(os.Args) > 1 {
 		cmd.Command(db)
 		return
 	}
 
-	// ==== WebSocket Setup ====
-	go websocket.WsHub.Run()
+	// ==== Repository Layer ====
+	userRepo := repository.NewUserRepository(db)
+	proposalRepo := repository.NewProposalRepository(db)
+	commentRepo := repository.NewCommentRepository(db)
 
-	var (
-		jwtService = service.NewJWTService()
+	// ==== Service Layer ====
+	jwtService := service.NewJWTService()
+	userService := service.NewUserService(userRepo, jwtService)
+	proposalService := service.NewProposalService(proposalRepo, userRepo, jwtService)
+	commentService := service.NewCommentService(commentRepo, userRepo, proposalRepo, jwtService)
 
-		userRepo       = repository.NewUserRepository(db)
-		userService    = service.NewUserService(userRepo, jwtService)
-		userController = controller.NewUserController(userService)
+	// ==== WebSocket Hub ====
+	hub := websocket.NewHub(commentService)
+	go hub.Run()
 
-		proposalRepo       = repository.NewProposalRepository(db)
-		proposalService    = service.NewProposalService(proposalRepo, userRepo, jwtService)
-		proposalController = controller.NewProposalController(proposalService)
+	// ==== Controller Layer ====
+	userController := controller.NewUserController(userService)
+	proposalController := controller.NewProposalController(proposalService)
 
-		commentRepo       = repository.NewCommentRepository(db)
-		commentService    = service.NewCommentService(commentRepo)
-		commentController = controller.NewCommentController(commentService)
-	)
+	// ==== WebSocket Handler ====
+	wsHandler := &websocket.WsHandler{
+		Hub: hub,
+	}
 
+	// ==== Gin Server Setup ====
 	server := gin.Default()
 	server.Use(middleware.CORSMiddleware())
 
+	// ==== Routes ====
+	// ==== Routes ====
 	routes.PublicRoutes(server, userController)
 	routes.AdminRoutes(server, userController, jwtService, proposalController)
-	routes.UserRoutes(server, userController, commentController, jwtService)
+	routes.UserRoutes(server, userController, jwtService)
+	routes.WebSocketRoutes(server, wsHandler)
 
+	// ==== Static Files ====
 	server.Static("/assets", "./assets")
 
+	// ==== Port Config ====
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8000"
 	}
 
-	var serve string
+	addr := ":" + port
 	if os.Getenv("APP_ENV") == "localhost" {
-		serve = "127.0.0.1:" + port
-	} else {
-		serve = ":" + port
+		addr = "127.0.0.1:" + port
 	}
 
-	if err := server.Run(serve); err != nil {
-		log.Fatalf("error running server: %v", err)
+	log.Printf("🚀 Server running at http://%s", addr)
+	if err := server.Run(addr); err != nil {
+		log.Fatalf("❌ Failed to start server: %v", err)
 	}
 }

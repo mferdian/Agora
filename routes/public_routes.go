@@ -2,7 +2,6 @@ package routes
 
 import (
 	"Agora/controller"
-
 	"github.com/gin-gonic/gin"
 )
 

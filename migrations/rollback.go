@@ -10,6 +10,7 @@ func Rollback(db *gorm.DB) error {
 	tables := []interface{}{
 		&model.User{},
 		&model.Proposal{},
+		&model.Comment{},
 	}
 
 	for _, table := range tables {

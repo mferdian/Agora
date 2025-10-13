@@ -191,11 +191,11 @@ func (ps *ProposalService) DeleteProposal(ctx context.Context, req dto.DeletePro
 
 	err = ps.proposalRepo.DeleteProposal(ctx, nil, req.ID)
 	if err != nil {
-		logging.Log.WithError(err).Error(constants.MESSAGE_FAILED_DELETE_USER)
+		logging.Log.WithError(err).Error(constants.MESSAGE_FAILED_DELETE_PROPOSAL)
 		return dto.ProposalResponse{}, constants.ErrDeleteProposal
 	}
 
-	logging.Log.Infof(constants.MESSAGE_SUCCESS_DELETE_USER+": %s", req.ID)
+	logging.Log.Infof(constants.MESSAGE_SUCCESS_DELETE_PROPOSAL+": %s", req.ID)
 
 	return dto.ProposalResponse{
 		ID:          proposal.ID,
