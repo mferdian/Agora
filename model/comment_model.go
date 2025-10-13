@@ -10,7 +10,7 @@ type Comment struct {
 	User   User      `gorm:"foreignKey:UserID;references:ID"`
 
 	ProposalID uuid.UUID `gorm:"type:uuid"`
-	Proposal   Proposal      `gorm:"foreignKey:ProposalID;references:ID"`
+	Proposal   Proposal  `gorm:"foreignKey:ProposalID;references:ID"`
 
 	TimeStamp
 }

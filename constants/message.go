@@ -23,6 +23,9 @@ const (
 	MESSAGE_FAILED_GET_DETAIL_PROPOSAL = "failed get detail proposal"
 	MESSAGE_FAILED_UPDATE_PROPOSAL     = "failed update proposal"
 	MESSAGE_FAILED_DELETE_PROPOSAL     = "failed delete proposal"
+	MESSAGE_FAILED_CREATE_COMMENT      = "failed create comment"
+	MESSAGE_FAILED_DELETE_COMMENT      = "failed to delete comment"
+	MESSAGE_FAILED_GET_COMMENT         = "failed to get comment"
 
 	// success
 	MESSAGE_SUCCESS_CREATE_USER         = "success create user"
@@ -37,6 +40,8 @@ const (
 	MESSAGE_SUCCESS_UPDATE_PROPOSAL     = "success update proposal"
 	MESSAGE_SUCCESS_CREATE_PROPOSAL     = "success create proposal"
 	MESSAGE_SUCCESS_DELETE_PROPOSAL     = "success delete proposal"
+	MESSAGE_SUCCESS_CREATE_COMMENT      = "success create comment"
+	MESSAGE_SUCCESS_DELETE_COMMENT = "success delete comment"
 )
 
 var (
@@ -74,4 +79,8 @@ var (
 	ErrGetProposalByID              = errors.New("failed get proposal by id")
 	ErrUpdateProposal               = errors.New("failed to update proposal")
 	ErrDeleteProposal               = errors.New("failed delete proposal by id")
+	ErrCreateComment                = errors.New("failed create comment")
+	ErrGetCommentByID = errors.New("failed get comment")
+	ErrDeleteComment = errors.New("failed delete comment")
+
 )

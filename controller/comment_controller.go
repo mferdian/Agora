@@ -1,9 +1,11 @@
 package controller
 
 import (
-	"Agora/helpers"
-	"Agora/model"
+	"Agora/constants"
+	"Agora/dto"
+	"Agora/logging"
 	"Agora/service"
+	"Agora/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +14,7 @@ import (
 type (
 	ICommentController interface {
 		CreateComment(ctx *gin.Context)
+		DeleteComment(ctx *gin.Context)
 	}
 
 	CommentController struct {
@@ -19,23 +22,29 @@ type (
 	}
 )
 
-func NewCommentController(s service.ICommentService) *CommentController {
-	return &CommentController{commentService: s}
+func NewCommentController(commentService service.ICommentService) *CommentController {
+	return &CommentController{
+		commentService: commentService,
+	}
 }
 
-func (c *CommentController) CreateComment(ctx *gin.Context) {
-	var req model.Comment
+func (cc *CommentController) CreateComment(ctx *gin.Context) {
+	var req dto.CreateCommentRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		res := utils.BuildResponseFailed(constants.MESSAGE_FAILED_PROSES_REQUEST, err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	userID := helpers.GetUserID(ctx)
-	comment, err := c.commentService.CreateComment(userID, req)
+	resData, err := cc.commentService.CreateComment(ctx.Request.Context(), req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logging.Log.WithError(err).Error(constants.MESSAGE_FAILED_CREATE_COMMENT)
+		res := utils.BuildResponseFailed(constants.MESSAGE_FAILED_CREATE_COMMENT, err.Error(), nil)
+		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, comment)
+	logging.Log.Infof(constants.MESSAGE_SUCCESS_CREATE_COMMENT+": %s", resData.Content)
+	res := utils.BuildResponseSuccess(constants.MESSAGE_SUCCESS_CREATE_COMMENT, resData)
+	ctx.JSON(http.StatusCreated, res)
 }
